@@ -34,4 +34,7 @@ start := "2021-12-01T00:00:00Z"
 end := "2023-12-06T00:00:00Z"
 
 run:
-    @go run main.go -start {{ start }} -end {{ end }}
+    @echo "Building gofeed..."
+    @go build -o gofeed ./src
+    @echo "Running gofeed...\n"
+    @./gofeed -config=config.yml
