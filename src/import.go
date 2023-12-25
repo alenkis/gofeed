@@ -10,7 +10,7 @@ func psqlImportQuery(c *Config) string {
 	return fmt.Sprintf(`psql %s -c %s`, c.Import.PostgresUri, cmd)
 }
 
-func PostgresImport(c *Config) {
+func PostgresImport(c *Config) error {
 	q := psqlImportQuery(c)
 
 	fmt.Printf("Executing psql: %s\n", q)
@@ -18,9 +18,9 @@ func PostgresImport(c *Config) {
 	cmd := exec.Command("bash", "-c", q)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Printf("Error executing psql: %v\nOutput: %s\n", err, string(output))
-		return
+		return fmt.Errorf("psql import failed: %v, output: %s", err, string(output))
 	}
 
 	fmt.Println("Data exported and copied successfully")
+	return nil
 }

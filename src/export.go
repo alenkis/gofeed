@@ -14,17 +14,16 @@ func mongoExportQuery(start string, end string) string {
 	return fmt.Sprintf("mongoexport --uri='%s' --collection='%s' --query='%s' --out='%s'", mongoUri, mongoCollection, mongoQuery, exportedProducts)
 }
 
-func MongoExport(config *Config) {
-	start := config.Export.Start
-	end := config.Export.End
+func MongoExport(config *Config, start string, end string) error {
 	q := mongoExportQuery(start, end)
 
-	fmt.Printf("Executing mongoexport: %s\n", q)
+	fmt.Printf("Executing mongoexport query: %s\n", q)
 
 	cmd := exec.Command("bash", "-c", q)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Printf("Error executing mongoexport: %v\nOutput: %s\n", err, string(output))
-		return
+		return fmt.Errorf("mongoexport failed: %v, output: %s", err, string(output))
 	}
+
+	return nil
 }

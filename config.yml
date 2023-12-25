@@ -1,15 +1,14 @@
 export:
   mongoUri: "mongodb://mongoadmin:secret@localhost:27017/mydatabase?authSource=admin"
   mongoCollection: "products"
-  start: "2023-12-01T00:00:00Z"
-  # end is optional, if not provided, it will be set to
-  # start + `schedule` value provided.
-  # end: "2023-12-06T00:00:00Z"
+
 import:
   postgresUri: "postgresql://postgres:secret@localhost:5432/products"
   postgresTable: "public.products_raw"
 
 job:
   name: "test"
+  start: "2023-12-01T00:00:00Z"
   schedule: 1
-  scheduleUnit: "day"
+  ## Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+  scheduleUnit: "m"

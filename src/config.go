@@ -16,8 +16,6 @@ type Config struct {
 }
 
 type ExportConfig struct {
-	Start           string `yaml:"start"`
-	End             string `yaml:"end"`
 	MongoUri        string `yaml:"mongoUri"`
 	MongoCollection string `yaml:"mongoCollection"`
 }
@@ -28,60 +26,56 @@ type ImportConfig struct {
 }
 
 type JobConfig struct {
-	Name         string `yaml:"name"`
-	Schedule     int    `yaml:"schedule"`
-	ScheduleUnit string `yaml:"scheduleUnit"`
+	Name          string `yaml:"name"`
+	Start         string `yaml:"start"`
+	End           string
+	ScheduleValue int    `yaml:"schedule"`
+	ScheduleUnit  string `yaml:"scheduleUnit"`
+}
+
+// StartTime returns the RFC3339 formatted start time
+func (c *Config) StartTime() time.Time {
+	startTime, err := time.Parse(time.RFC3339, c.Job.Start)
+	if err != nil {
+		log.Fatalf("Error parsing start time: %v", err)
+	}
+
+	return startTime
+}
+
+func (config *Config) calculateTimeRange(state *SchedulerState) (string, string) {
+	state.Lock()
+	defer state.Unlock()
+
+	duration := config.Duration()
+
+	// Calculate the current start and end times
+	currentStartTime := state.initialTime.Add(duration * time.Duration(state.elapsedCycles))
+	currentEndTime := currentStartTime.Add(duration)
+
+	// Increment the number of elapsed cycles for the next calculation
+	state.elapsedCycles++
+
+	return currentStartTime.Format(time.RFC3339), currentEndTime.Format(time.RFC3339)
 }
 
 // Validate returns an error if the config is invalid
 func (c *Config) Validate() error {
-	startTime, err := time.Parse(time.RFC3339, c.Export.Start)
-	_ = startTime
-
-	if err != nil {
-		return fmt.Errorf("Error parsing start time: %v", err)
-	}
+	startTime := c.StartTime()
 
 	var endTime time.Time
-	if c.Export.End == "" {
-		scheduleDuration := time.Duration(c.Job.Schedule)
-		var t time.Duration
+	configDuration := c.Duration()
 
-		switch c.Job.ScheduleUnit {
-		case "minute":
-			t = time.Minute
-		case "hour":
-			t = time.Hour
-		case "day":
-			t = time.Hour * 24
-		case "week":
-			t = time.Hour * 24 * 7
-		case "month":
-			t = time.Hour * 24 * 30
-		case "year":
-			t = time.Hour * 24 * 365
-		default:
-			log.Fatalf("Invalid schedule unit: %s", c.Job.ScheduleUnit)
-		}
+	endTime = startTime.Add(configDuration)
 
-		endTime = startTime.Add(scheduleDuration * t)
-
-		// Update config with formatted end time
-		c.Export.End = endTime.Format(time.RFC3339)
-	} else {
-		// If end time is specified, parse it
-		endTime, err = time.Parse(time.RFC3339, c.Export.End)
-		if err != nil {
-			return fmt.Errorf("Error parsing end time: %v", err)
-		}
-	}
-
-	_ = endTime
+	// Update config with formatted end time
+	c.Job.End = endTime.Format(time.RFC3339)
 
 	return nil
 }
 
-// ParseConfig parses a YAML config file
+// ParseConfig parses a YAML config file, and then
+// validates it
 func ParseConfig(configPath string) (*Config, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -94,5 +88,21 @@ func ParseConfig(configPath string) (*Config, error) {
 		return nil, err
 	}
 
+	if config.Validate() != nil {
+		log.Fatalf("Error validating config file: %v", err)
+	}
+
 	return &config, nil
+}
+
+func (c *Config) Duration() time.Duration {
+	durationString := fmt.Sprintf("%d%s", c.Job.ScheduleValue, c.Job.ScheduleUnit)
+	configDuration, err := time.ParseDuration(durationString)
+
+	if err != nil {
+		log.Fatalf("Error parsing schedule duration: %v", err)
+	}
+
+	return configDuration
+
 }
