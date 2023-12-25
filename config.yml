@@ -7,8 +7,8 @@ import:
   postgresTable: "public.products_raw"
 
 job:
-  name: "test"
+  name: "Test"
   start: "2023-12-01T00:00:00Z"
-  schedule: 1
+  schedule: 5
   ## Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-  scheduleUnit: "m"
+  scheduleUnit: "s"

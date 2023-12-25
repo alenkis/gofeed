@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+
+	"github.com/charmbracelet/log"
 )
 
 func mongoExportQuery(start string, end string) string {
@@ -17,13 +20,23 @@ func mongoExportQuery(start string, end string) string {
 func MongoExport(config *Config, start string, end string) error {
 	q := mongoExportQuery(start, end)
 
-	fmt.Printf("Executing mongoexport query: %s\n", q)
+	log.NewWithOptions(os.Stderr, log.Options{
+		Prefix: "mongo-export",
+	}).
+		With("query", q).
+		Info("Executing mongoexport query\n")
 
 	cmd := exec.Command("bash", "-c", q)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("mongoexport failed: %v, output: %s", err, string(output))
 	}
+
+	// Get the size of the exported file
+	fileInfo, err := os.Stat("products.out.json")
+
+	// Print file size in bytes
+	log.Infof("Exported file size: %d bytes\n", fileInfo.Size())
 
 	return nil
 }

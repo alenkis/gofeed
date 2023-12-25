@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+
+	"github.com/charmbracelet/log"
 )
 
 func psqlImportQuery(c *Config) string {
@@ -13,7 +16,11 @@ func psqlImportQuery(c *Config) string {
 func PostgresImport(c *Config) error {
 	q := psqlImportQuery(c)
 
-	fmt.Printf("Executing psql: %s\n", q)
+	log.NewWithOptions(os.Stderr, log.Options{
+		Prefix: "postgres-import",
+	}).
+		With("query", q).
+		Info("Executing psql copy command\n")
 
 	cmd := exec.Command("bash", "-c", q)
 	output, err := cmd.CombinedOutput()
@@ -21,6 +28,6 @@ func PostgresImport(c *Config) error {
 		return fmt.Errorf("psql import failed: %v, output: %s", err, string(output))
 	}
 
-	fmt.Println("Data exported and copied successfully")
+	log.Info("Data exported and copied successfully")
 	return nil
 }

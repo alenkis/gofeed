@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/charmbracelet/log"
 )
 
 type SchedulerState struct {
@@ -35,7 +36,11 @@ func main() {
 	duration := config.Duration()
 	ticker := time.NewTicker(duration)
 
-	log.Printf("Starting %s, with export-import cycle every %d %s", config.Job.Name, config.Job.ScheduleValue, config.Job.ScheduleUnit)
+	log.Infof("Starting %s, with export-import cycle every %d %s", config.Job.Name, config.Job.ScheduleValue, config.Job.ScheduleUnit)
+
+	// Run the first job immediately
+	startTime, endTime := config.calculateTimeRange(state)
+	go handleExportImport(config, startTime, endTime)
 
 	// Scheduler loop
 	for {
@@ -48,7 +53,7 @@ func main() {
 }
 
 func handleExportImport(config *Config, startTime string, endTime string) {
-	log.Println("Starting the job")
+	log.Info("Starting the job ---------------")
 	// Implement retry logic if needed
 	const maxRetries = 3
 	for i := 0; i < maxRetries; i++ {
@@ -62,7 +67,7 @@ func handleExportImport(config *Config, startTime string, endTime string) {
 			continue
 		}
 
-		log.Println("Export-Import cycle completed successfully")
+		log.Info("Export-Import cycle completed successfully")
 		return
 	}
 
