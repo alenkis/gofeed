@@ -8,17 +8,15 @@ import (
 	"github.com/charmbracelet/log"
 )
 
-func mongoExportQuery(start string, end string) string {
+func mongoExportQuery(config *Config, start string, end string) string {
 	mongoQuery := fmt.Sprintf(`{"updatedAt": {"$gte": {"$date": "%s"}, "$lte": {"$date": "%s"}}}`, start, end)
-	mongoUri := "mongodb://mongoadmin:secret@localhost:27017/mydatabase?authSource=admin"
-	mongoCollection := "products"
 	exportedProducts := "products.out.json"
 
-	return fmt.Sprintf("mongoexport --uri='%s' --collection='%s' --query='%s' --out='%s'", mongoUri, mongoCollection, mongoQuery, exportedProducts)
+	return fmt.Sprintf("mongoexport --uri='%s' --collection='%s' --query='%s' --out='%s'", config.Export.MongoUri, config.Export.MongoCollection, mongoQuery, exportedProducts)
 }
 
 func MongoExport(config *Config, start string, end string) error {
-	q := mongoExportQuery(start, end)
+	q := mongoExportQuery(config, start, end)
 
 	log.NewWithOptions(os.Stderr, log.Options{
 		Prefix: "mongo-export",
