@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -30,6 +33,7 @@ type JobConfig struct {
 	ScheduleUnit string `yaml:"scheduleUnit"`
 }
 
+// Validate returns an error if the config is invalid
 func (c *Config) Validate() error {
 	startTime, err := time.Parse(time.RFC3339, c.Export.Start)
 	_ = startTime
@@ -40,10 +44,8 @@ func (c *Config) Validate() error {
 
 	var endTime time.Time
 	if c.Export.End == "" {
-		fmt.Printf("End time not specified. \n")
-		var t time.Duration
-
 		scheduleDuration := time.Duration(c.Job.Schedule)
+		var t time.Duration
 
 		switch c.Job.ScheduleUnit {
 		case "minute":
@@ -62,9 +64,9 @@ func (c *Config) Validate() error {
 			log.Fatalf("Invalid schedule unit: %s", c.Job.ScheduleUnit)
 		}
 
-		endTime = startTime.Add(t * scheduleDuration)
+		endTime = startTime.Add(scheduleDuration * t)
 
-		// Update config with end time
+		// Update config with formatted end time
 		c.Export.End = endTime.Format(time.RFC3339)
 	} else {
 		// If end time is specified, parse it
@@ -77,5 +79,20 @@ func (c *Config) Validate() error {
 	_ = endTime
 
 	return nil
+}
 
+// ParseConfig parses a YAML config file
+func ParseConfig(configPath string) (*Config, error) {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var config Config
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &config, nil
 }
